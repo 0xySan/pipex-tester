@@ -28,8 +28,8 @@ USR_PATH="$PWD/usr_path"
 if [ -f "$USR_PATH" ]; then
 	printf "Found path file.\n"
 	usr_path=$(cat $USR_PATH)
-	make $usr_path > /dev/null 2>&1
-	make $usr_path clean > /dev/null 2>&1
+	make -C $usr_path > /dev/null 2>&1
+	make -C $usr_path clean > /dev/null 2>&1
 	TEST_PATH=$(ls $usr_path 2>&1)
 	TEST_MAKE=$(echo "$TEST_PATH" | grep pipex | wc -l)
 	TEST_PATH2=$(echo "$TEST_PATH" | grep "such file or directory" | wc -l)

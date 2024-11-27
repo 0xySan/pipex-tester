@@ -1352,7 +1352,53 @@ fi
 ((TOT++))
 ((COUNT++))
 
+output=$($corr_path/pipex test_file.txt "cat" " cat" fpipex 2>&1)
+line=$(echo "$output" | grep "denied" | wc -l)
+output=$(< test_file.txt cat | " cat" > r2pipex 2>&1)
+line2=$(echo "$output" | grep "denied" | wc -l)
 
+if cmp --silent -- "$PWD/fpipex" "$PWD/r1pipex" || [ "$line" -eq "$line2" ]; then
+	printf ${GREEN}""$COUNT":OK. "
+	((COUNTG++))
+else
+	printf ${RED}""$COUNT":KO. "
+	((COUNTR++))
+fi
+
+((TOT++))
+((COUNT++))
+
+output=$($corr_path/pipex mmmmmmmmmmmmm "cat" "ls -l" fpipex 2>&1)
+line=$(echo "$output" | wc -l)
+output=$(( cat < mmmm ) 2>/dev/null | ls -l > r1pipex)
+line2=$(echo "$output" | wc -l)d
+
+if cmp --silent -- "$PWD/fpipex" "$PWD/r1pipex"; then
+	printf ${GREEN}""$COUNT":OK. "
+	((COUNTG++))
+else
+	printf ${RED}""$COUNT":KO. "
+	((COUNTR++))
+fi
+
+((TOT++))
+((COUNT++))
+
+output=$($corr_path/pipex test_file_nb_3 "ls -l" "wc -l" fpipex 2>&1)
+line=$(echo "$output" | wc -l)
+output=$(( ls -l < test_file_nb_3 ) 2>/dev/null | wc -l > r1pipex)
+line2=$(echo "$output" | wc -l)d
+
+if cmp --silent -- "$PWD/fpipex" "$PWD/r1pipex"; then
+	printf ${GREEN}""$COUNT":OK. "
+	((COUNTG++))
+else
+	printf ${RED}""$COUNT":KO. "
+	((COUNTR++))
+fi
+
+((TOT++))
+((COUNT++))
 
 
 

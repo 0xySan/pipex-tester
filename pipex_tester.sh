@@ -1,5 +1,55 @@
 #!/bin/bash
 
+# -=-=-=-=-	FLAGS CONTROL -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
+
+SPEED_OPT=0
+VALGRIND_OPT=0
+BONUS_OPT=0
+
+usage()
+{
+ echo "Usage: $0 [OPTIONS]"
+ echo "Options:"
+ echo " -h, --help      		Display this help message"
+ echo " -sc, --skip-code   		Skips the vscode warning"
+ echo " -sv, --skip-valgrind	Skips the valgrind tests"
+ echo " -sa, --skip-all	Skips 	Both vs's warning and valgrind's tests are skipped"
+ echo " -b, --bonus     		Does the tests for pipex's bonuses"
+}
+
+handle_options()
+{
+  while [ $# -gt 0 ]; do
+    case $1 in
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      -sc | --skip-code)
+        SPEED_OPT=1
+        ;;
+	  -sv | --skip-valgrind)
+        VALGRIND_OPT=1
+        ;;
+	  -sa | --skip-all)
+	  	SPEED_OPT=1
+        VALGRIND_OPT=1
+        ;;
+	  -b | --bonus)
+        BONUS_OPT=1
+        ;;
+      *)
+        echo "Invalid option: $1" >&2
+        usage
+        exit 1
+        ;;
+    esac
+    shift
+  done
+}
+
+handle_options "$@"
+
 # -=-=-=-=-	CLRS -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 
 DEF_COLOR='\033[0;39m'
@@ -455,753 +505,761 @@ TOT=0
 COUNTG=0
 COUNTR=0
 COUNTY=0
+TESTNB=1
+if [ $((VALGRIND_OPT)) -eq 0 ]; then
+	if [ -f "$VALGRIND" ]; then
+		printf "Valgrind configuration found.\n\n"
+	else
+		printf "Valgrind configuration file not found.... Creating one...\n\n"
+		echo "--track-fds=yes" > $VALGRIND
+		echo "--track-origins=yes" >> $VALGRIND
+		echo "--keep-debuginfo=yes" >> $VALGRIND
+		echo "--leak-check=full" >> $VALGRIND
+		echo "--show-leak-kinds=all" >> $VALGRIND
+	fi
 
-if [ -f "$VALGRIND" ]; then
-	printf "Valgrind configuration found.\n\n"
-else
-    printf "Valgrind configuration file not found.... Creating one...\n\n"
-    echo "--track-fds=yes" > $VALGRIND
-	echo "--track-origins=yes" >> $VALGRIND
-	echo "--keep-debuginfo=yes" >> $VALGRIND
-	echo "--leak-check=full" >> $VALGRIND
-	echo "--show-leak-kinds=all" >> $VALGRIND
+	if [ $((SPEED_OPT)) == 0 ]; then
+		printf ${RED}"\t\t\t\t\t   ⚠️  \e[4m\e[1mPLEASE READ CAREFULLY\e[0m ⚠️\n"
+		printf ${RED}"\t\t\t    \e[4m\e[1mVSCODE OPENS FILE DESCRIPTORS ITSELF WITHOUT CLOSING THEM\e[0m\n"
+		printf ${RED}"\t\t     \e[4m\e[1mIF YOU RUN THIS TESTER IN VSCODE IT WILL MOST OF THE TIMES GIVE YOU ERRORS\e[0m\n"
+		printf ${RED}"\t\t\t\t\e[4m\e[1mEVEN IF YOU ARE CLOSING EVERY FILE DESCRIPTORS!\e[0m\n"
+		printf ${RED}"\t\t       \e[4m\e[1mIF YOU UNDERSTAND THIS PLEASE TRY THE TESTER IN A TERMINAL NOT VSCODE.\e[0m\n\n\n\n\n${RED}\e[4m\e[1m"
+		read -p "If understood, press enter to continue..." </dev/tty
+	fi
+
+	printf ${MAGENTA}"\nRunning valgrind...\n"
+
+	# -=-=-=-=-    Testing pipex fds' 1: enough arguments -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
+
+	printf ${CYAN}"\nTesting pipex fds' ${TESTNB}: enough arguments\n";
+	((TESTNB++))
+
+	COUNT=1
+
+	output=$(valgrind $corr_path/pipex test_file.txt "grep ." "ls -l" out 2>&1)
+
+
+	error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
+	error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
+	error3=$(echo "$output" | grep "Originally opened" | wc -l)
+	error4=$(echo "$output" | grep "Previously closed" | wc -l)
+	((line_count=error1+error2+error3+error4))
+
+
+	if [ "$line_count" -eq 0 ]; then
+		printf ${GREEN}"OK.\n";
+		((COUNTG++))
+	else
+		printf ${RED}"FKO.\n"
+		((COUNTR++))
+	fi
+	((TOT++))
+
+	# -=-=-=-=-    Testing pipex fds' 2: errors encountered -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
+
+	printf ${CYAN}"\nTesting pipex fds' ${TESTNB}: errors encountered\n";
+	((TESTNB++))
+
+	output=$(valgrind $corr_path/pipex test_file.txt "esfe" "ls -l" out 2>&1)
+
+
+	error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
+	error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
+	error3=$(echo "$output" | grep "Originally opened" | wc -l)
+	error4=$(echo "$output" | grep "Previously closed" | wc -l)
+	((line_count=error1+error2+error3+error4))
+
+
+	if [ "$line_count" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex test_file.txt "grep ." "sefes" out 2>&1)
+
+
+	error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
+	error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
+	error3=$(echo "$output" | grep "Originally opened" | wc -l)
+	error4=$(echo "$output" | grep "Previously closed" | wc -l)
+	((line_count=error1+error2+error3+error4))
+
+
+	if [ "$line_count" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex test_file.txt "sefsefs" "sefes" out 2>&1)
+
+
+	error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
+	error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
+	error3=$(echo "$output" | grep "Originally opened" | wc -l)
+	error4=$(echo "$output" | grep "Previously closed" | wc -l)
+	((line_count=error1+error2+error3+error4))
+
+
+	if [ "$line_count" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex test_file.txt "grep ." "ls -l" test_file_nb_3 2>&1)
+
+
+	error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
+	error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
+	error3=$(echo "$output" | grep "Originally opened" | wc -l)
+	error4=$(echo "$output" | grep "Previously closed" | wc -l)
+	((line_count=error1+error2+error3+error4))
+
+
+	if [ "$line_count" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex awda.txt "grep ." "ls -l" out 2>&1)
+
+
+	error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
+	error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
+	error3=$(echo "$output" | grep "Originally opened" | wc -l)
+	error4=$(echo "$output" | grep "Previously closed" | wc -l)
+	((line_count=error1+error2+error3+error4))
+
+
+	if [ "$line_count" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex awda.txt "sefesfe" "ls -l" test_file_nb_3 2>&1)
+
+
+	error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
+	error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
+	error3=$(echo "$output" | grep "Originally opened" | wc -l)
+	error4=$(echo "$output" | grep "Previously closed" | wc -l)
+	((line_count=error1+error2+error3+error4))
+
+
+	if [ "$line_count" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex awda.txt "grep ." "sefsefs" test_file_nb_3 2>&1)
+
+
+	error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
+	error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
+	error3=$(echo "$output" | grep "Originally opened" | wc -l)
+	error4=$(echo "$output" | grep "Previously closed" | wc -l)
+	((line_count=error1+error2+error3+error4))
+
+
+	if [ "$line_count" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex awda.txt "grep ." "sefsefs" out 2>&1)
+
+
+	error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
+	error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
+	error3=$(echo "$output" | grep "Originally opened" | wc -l)
+	error4=$(echo "$output" | grep "Previously closed" | wc -l)
+	((line_count=error1+error2+error3+error4))
+
+
+	if [ "$line_count" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex awda.txt "sefsese" "sefsefs" out 2>&1)
+
+
+	error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
+	error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
+	error3=$(echo "$output" | grep "Originally opened" | wc -l)
+	error4=$(echo "$output" | grep "Previously closed" | wc -l)
+	((line_count=error1+error2+error3+error4))
+
+
+	if [ "$line_count" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+
+	output=$(valgrind $corr_path/pipex test_file_nb_6 "grep ." "ls -l" test_file_nb_3 2>&1)
+
+
+	error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
+	error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
+	error3=$(echo "$output" | grep "Originally opened" | wc -l)
+	error4=$(echo "$output" | grep "Previously closed" | wc -l)
+	((line_count=error1+error2+error3+error4))
+
+
+	if [ "$line_count" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+
+	((COUNT++))
+	output=$(valgrind $corr_path/pipex test_file_nb_6 "sefsefse" "awdawwda" test_file_nb_3 2>&1)
+
+
+	error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
+	error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
+	error3=$(echo "$output" | grep "Originally opened" | wc -l)
+	error4=$(echo "$output" | grep "Previously closed" | wc -l)
+	((line_count=error1+error2+error3+error4))
+
+
+	if [ "$line_count" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex test_file_nb_6 "sefessf" "ls -l" test_file_nb_3 2>&1)
+
+
+	error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
+	error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
+	error3=$(echo "$output" | grep "Originally opened" | wc -l)
+	error4=$(echo "$output" | grep "Previously closed" | wc -l)
+	((line_count=error1+error2+error3+error4))
+
+
+	if [ "$line_count" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex $PWD/pipex_tester.sh "cat" "cat" out 2>&1)
+
+
+	error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
+	error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
+	error3=$(echo "$output" | grep "Originally opened" | wc -l)
+	error4=$(echo "$output" | grep "Previously closed" | wc -l)
+	((line_count=error1+error2+error3+error4))
+
+
+	if [ "$line_count" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	# -=-=-=-=-    Testing pipex alloc's 3: enough arguments -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
+
+	printf ${CYAN}"\n\nTesting pipex alloc's ${TESTNB}: enough arguments\n";
+	((TESTNB++))
+
+	COUNT=1
+
+	output=$(valgrind $corr_path/pipex test_file.txt "grep ." "ls -l" out 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -eq 1 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}"OK.\n";
+		((COUNTG++))
+	else
+		printf ${RED}"FKO.\n"
+		((COUNTR++))
+	fi
+	((TOT++))
+
+	# -=-=-=-=-    Testing pipex alloc's 4: errors encountered -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
+
+	printf ${CYAN}"\nTesting pipex alloc's ${TESTNB}: errors encountered\n";
+	((TESTNB++))
+
+	output=$(valgrind $corr_path/pipex test_file.txt "sefsefs" "ls -l" out 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex test_file.txt "grep ." "sefsefse" out 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex test_file.txt "sefsef" "sefse" out 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex test_file_nb_3 "grep ." "ls -l" out 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex test_file_nb_3 "sfsef" "ls -l" out 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+
+	output=$(valgrind $corr_path/pipex test_file_nb_3 "sefsfese" "sefsef" out 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex test_file_nb_3 "ls -l" "wc -w" out 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex test_file_nb_3 "grep ." "sefsef" test_file_nb_6 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex test_file_nb_3 "sefsefse" "sefsef" test_file_nb_6 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex test_file_nb_3 "sefsefse" "wc -w" test_file_nb_6 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex test_file_nb_3 "ls -l" "wc -w" test_file_nb_6 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "grep ." "ls -l" test_file_nb_6 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "sefse" "ls -l" test_file_nb_6 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "grep ." "sefesf" test_file_nb_6 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "seseff" "sefsef" test_file_nb_6 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "grep ." "ls -l" out 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "sefsef" "ls -l" out 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "grep ." "sefess" out 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
+
+	output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "sefsef" "sefse" out 2>&1)
+
+
+	no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
+	error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
+	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
+	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
+	error4=$(echo "$output" | grep "unitialized value" | wc -l)
+	((tot_error=error1+error2+error3+error4))
+
+
+	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
+		printf ${GREEN}""$COUNT":OK. ";
+		((COUNTG++))
+	else
+		printf ${RED}""$COUNT":FKO. "
+		((COUNTR++))
+	fi
+	((TOT++))
+	((COUNT++))
 fi
-
-printf ${RED}"\t\t\t\t\t   ⚠️  \e[4m\e[1mPLEASE READ CAREFULLY\e[0m ⚠️\n"
-printf ${RED}"\t\t\t    \e[4m\e[1mVSCODE OPENS FILE DESCRIPTORS ITSELF WITHOUT CLOSING THEM\e[0m\n"
-printf ${RED}"\t\t     \e[4m\e[1mIF YOU RUN THIS TESTER IN VSCODE IT WILL MOST OF THE TIMES GIVE YOU ERRORS\e[0m\n"
-printf ${RED}"\t\t\t\t\e[4m\e[1mEVEN IF YOU ARE CLOSING EVERY FILE DESCRIPTORS!\e[0m\n"
-printf ${RED}"\t\t       \e[4m\e[1mIF YOU UNDERSTAND THIS PLEASE TRY THE TESTER IN A TERMINAL NOT VSCODE.\e[0m\n\n\n\n\n${RED}\e[4m\e[1m"
-read -p "If understood, press enter to continue..." </dev/tty
-
-printf ${MAGENTA}"\nRunning valgrind...\n"
-
-# -=-=-=-=-    Testing pipex fds' 1: enough arguments -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
-
-printf ${CYAN}"\nTesting pipex fds' 1: enough arguments\n";
-
-COUNT=1
-
-output=$(valgrind $corr_path/pipex test_file.txt "grep ." "ls -l" out 2>&1)
-
-
-error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
-error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
-error3=$(echo "$output" | grep "Originally opened" | wc -l)
-error4=$(echo "$output" | grep "Previously closed" | wc -l)
-((line_count=error1+error2+error3+error4))
-
-
-if [ "$line_count" -eq 0 ]; then
-    printf ${GREEN}"OK.\n";
-	((COUNTG++))
-else
-    printf ${RED}"FKO.\n"
-	((COUNTR++))
-fi
-((TOT++))
-
-# -=-=-=-=-    Testing pipex fds' 2: errors encountered -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
-
-printf ${CYAN}"\nTesting pipex fds' 2: errors encountered\n";
-
-output=$(valgrind $corr_path/pipex test_file.txt "esfe" "ls -l" out 2>&1)
-
-
-error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
-error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
-error3=$(echo "$output" | grep "Originally opened" | wc -l)
-error4=$(echo "$output" | grep "Previously closed" | wc -l)
-((line_count=error1+error2+error3+error4))
-
-
-if [ "$line_count" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex test_file.txt "grep ." "sefes" out 2>&1)
-
-
-error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
-error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
-error3=$(echo "$output" | grep "Originally opened" | wc -l)
-error4=$(echo "$output" | grep "Previously closed" | wc -l)
-((line_count=error1+error2+error3+error4))
-
-
-if [ "$line_count" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex test_file.txt "sefsefs" "sefes" out 2>&1)
-
-
-error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
-error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
-error3=$(echo "$output" | grep "Originally opened" | wc -l)
-error4=$(echo "$output" | grep "Previously closed" | wc -l)
-((line_count=error1+error2+error3+error4))
-
-
-if [ "$line_count" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex test_file.txt "grep ." "ls -l" test_file_nb_3 2>&1)
-
-
-error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
-error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
-error3=$(echo "$output" | grep "Originally opened" | wc -l)
-error4=$(echo "$output" | grep "Previously closed" | wc -l)
-((line_count=error1+error2+error3+error4))
-
-
-if [ "$line_count" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex awda.txt "grep ." "ls -l" out 2>&1)
-
-
-error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
-error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
-error3=$(echo "$output" | grep "Originally opened" | wc -l)
-error4=$(echo "$output" | grep "Previously closed" | wc -l)
-((line_count=error1+error2+error3+error4))
-
-
-if [ "$line_count" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex awda.txt "sefesfe" "ls -l" test_file_nb_3 2>&1)
-
-
-error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
-error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
-error3=$(echo "$output" | grep "Originally opened" | wc -l)
-error4=$(echo "$output" | grep "Previously closed" | wc -l)
-((line_count=error1+error2+error3+error4))
-
-
-if [ "$line_count" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex awda.txt "grep ." "sefsefs" test_file_nb_3 2>&1)
-
-
-error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
-error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
-error3=$(echo "$output" | grep "Originally opened" | wc -l)
-error4=$(echo "$output" | grep "Previously closed" | wc -l)
-((line_count=error1+error2+error3+error4))
-
-
-if [ "$line_count" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex awda.txt "grep ." "sefsefs" out 2>&1)
-
-
-error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
-error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
-error3=$(echo "$output" | grep "Originally opened" | wc -l)
-error4=$(echo "$output" | grep "Previously closed" | wc -l)
-((line_count=error1+error2+error3+error4))
-
-
-if [ "$line_count" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex awda.txt "sefsese" "sefsefs" out 2>&1)
-
-
-error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
-error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
-error3=$(echo "$output" | grep "Originally opened" | wc -l)
-error4=$(echo "$output" | grep "Previously closed" | wc -l)
-((line_count=error1+error2+error3+error4))
-
-
-if [ "$line_count" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-
-output=$(valgrind $corr_path/pipex test_file_nb_6 "grep ." "ls -l" test_file_nb_3 2>&1)
-
-
-error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
-error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
-error3=$(echo "$output" | grep "Originally opened" | wc -l)
-error4=$(echo "$output" | grep "Previously closed" | wc -l)
-((line_count=error1+error2+error3+error4))
-
-
-if [ "$line_count" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-
-((COUNT++))
-output=$(valgrind $corr_path/pipex test_file_nb_6 "sefsefse" "awdawwda" test_file_nb_3 2>&1)
-
-
-error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
-error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
-error3=$(echo "$output" | grep "Originally opened" | wc -l)
-error4=$(echo "$output" | grep "Previously closed" | wc -l)
-((line_count=error1+error2+error3+error4))
-
-
-if [ "$line_count" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex test_file_nb_6 "sefessf" "ls -l" test_file_nb_3 2>&1)
-
-
-error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
-error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
-error3=$(echo "$output" | grep "Originally opened" | wc -l)
-error4=$(echo "$output" | grep "Previously closed" | wc -l)
-((line_count=error1+error2+error3+error4))
-
-
-if [ "$line_count" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex $PWD/pipex_tester.sh "cat" "cat" out 2>&1)
-
-
-error1=$(echo "$output" | grep "Open file descriptor" | wc -l)
-error2=$(echo "$output" | grep "File descriptor" | grep "is already closed" | wc -l)
-error3=$(echo "$output" | grep "Originally opened" | wc -l)
-error4=$(echo "$output" | grep "Previously closed" | wc -l)
-((line_count=error1+error2+error3+error4))
-
-
-if [ "$line_count" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-# -=-=-=-=-    Testing pipex alloc's 3: enough arguments -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
-
-printf ${CYAN}"\n\nTesting pipex alloc's 3: enough arguments\n";
-
-COUNT=1
-
-output=$(valgrind $corr_path/pipex test_file.txt "grep ." "ls -l" out 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -eq 1 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}"OK.\n";
-	((COUNTG++))
-else
-    printf ${RED}"FKO.\n"
-	((COUNTR++))
-fi
-((TOT++))
-
-# -=-=-=-=-    Testing pipex alloc's 4: errors encountered -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
-
-printf ${CYAN}"\nTesting pipex alloc's 4: errors encountered\n";
-
-output=$(valgrind $corr_path/pipex test_file.txt "sefsefs" "ls -l" out 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex test_file.txt "grep ." "sefsefse" out 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex test_file.txt "sefsef" "sefse" out 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex test_file_nb_3 "grep ." "ls -l" out 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex test_file_nb_3 "sfsef" "ls -l" out 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-
-output=$(valgrind $corr_path/pipex test_file_nb_3 "sefsfese" "sefsef" out 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex test_file_nb_3 "ls -l" "wc -w" out 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex test_file_nb_3 "grep ." "sefsef" test_file_nb_6 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex test_file_nb_3 "sefsefse" "sefsef" test_file_nb_6 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex test_file_nb_3 "sefsefse" "wc -w" test_file_nb_6 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex test_file_nb_3 "ls -l" "wc -w" test_file_nb_6 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "grep ." "ls -l" test_file_nb_6 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "sefse" "ls -l" test_file_nb_6 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "grep ." "sefesf" test_file_nb_6 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "seseff" "sefsef" test_file_nb_6 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "grep ." "ls -l" out 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "sefsef" "ls -l" out 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "grep ." "sefess" out 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
-output=$(valgrind $corr_path/pipex mmmmmmmmmmmmm "sefsef" "sefse" out 2>&1)
-
-
-no_error=$(echo "$output" | grep "All heap blocks were freed -- no leaks are possible" | wc -l)
-error1=$(echo "$output" | grep "LEAK SUMMARY:" | wc -l)
-error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
-error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
-error4=$(echo "$output" | grep "unitialized value" | wc -l)
-((tot_error=error1+error2+error3+error4))
-
-
-if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
-    printf ${GREEN}""$COUNT":OK. ";
-	((COUNTG++))
-else
-    printf ${RED}""$COUNT":FKO. "
-	((COUNTR++))
-fi
-((TOT++))
-((COUNT++))
-
 
 
 
 # -=-=-=-=-    Testing pipex's result 5: enough arguments -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 
-printf ${CYAN}"\n\nTesting pipex's result 5: enough arguments\n";
+printf ${CYAN}"\n\nTesting pipex's result ${TESTNB}: enough arguments\n";
+((TESTNB++))
 
 COUNT=1
 
@@ -1274,7 +1332,8 @@ fi
 
 COUNT=1
 
-printf ${CYAN}"\n\nTesting pipex's result 6: errors encountered\n";
+printf ${CYAN}"\n\nTesting pipex's result ${TESTNB}: errors encountered\n";
+((TESTNB++))
 
 output=$($corr_path/pipex test_file.txt "cat" "cat" fpipex 2>&1)
 line=$(echo "$output" | grep "denied" | wc -l)
@@ -1426,8 +1485,10 @@ fi
 
 
 
-
-
-
+if [ $((BONUS_OPT)) == 0 ]; then
+	rm -f out test_file_nb_3 test_file_nb_6 test_file.txt rpipex fpipex r1pipex r2pipex
+	printf "\nBonuses aren't tested by default ! If you want to enable them use the -b or --bonus flag !\n"
+	exit 0
+fi
 
 rm -f out test_file_nb_3 test_file_nb_6 test_file.txt rpipex fpipex r1pipex r2pipex

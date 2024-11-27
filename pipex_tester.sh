@@ -37,13 +37,13 @@ if [ -f "$USR_PATH" ]; then
 	TEST_PATH4=$(echo "$TEST_PATH3" | grep "no makefile found" | wc -l)
 	exit_code=$?
 	if [ "$TEST_PATH2" -gt 0 ] || [ "$TEST_PATH4" -gt 0 ] || [ "$exit_code" -gt 0 ] || [ "$TEST_MAKE" -eq 0 ]; then
-	    printf ${MAGENTA}"The path is not correct anymore, did you change the path or did you move the emplacement? If it the case please retype the path.\nIf it is not the case try opening an issue on github I could help : \t\t\t${CYAN}\e[4m\e[1mgithub.com/0xysan/pipex_tester/issues\e[0m.\n${MAGENTA}If you don't have github (I despise you.) you can contact me on discord : \t\t${CYAN}\e[4m\e[1m0xyan.\e[0m\n${MAGENTA}And If you have neither of those (Despises you more :>) you can message me on Slack : \t${CYAN}\e[4m\e[1metaquet.\e[0m\n\t\t\t\t\t\t${RED}Waiting for input : \n\t\t\t\t\t\t\t"${YELLOW}
+	    printf ${MAGENTA}"The path is not correct anymore, did you change the path or did you move the emplacement? If it the case please retype the path.\nIf it is not the case try opening an issue on github I could help : \t\t\t${CYAN}\e[4m\e[1mgithub.com/0xysan/pipex_tester/issues\e[0m.\n${MAGENTA}If you don't have github (I despise you.) you can contact me on discord : \t\t${CYAN}\e[4m\e[1m0xysan.\e[0m\n${MAGENTA}And If you have neither of those (Despises you more :>) you can message me on Slack : \t${CYAN}\e[4m\e[1metaquet.\e[0m\n\t\t\t\t\t\t${RED}Waiting for input : \n\t\t\t\t\t\t\t"${YELLOW}
 		read usr_path
 		echo $usr_path > $USR_PATH
     fi
 	usr_path=$(cat $USR_PATH)
-	make $usr_path > /dev/null 2>&1
-	make $usr_path clean > /dev/null 2>&1
+	make -C $usr_path > /dev/null 2>&1
+	make -C $usr_path clean > /dev/null 2>&1
 	TEST_PATH=$(ls $usr_path 2>&1)
 	TEST_MAKE=$(echo "$TEST_PATH" | grep pipex | wc -l)
 	TEST_PATH2=$(echo "$TEST_PATH" | grep "such file or directory" | wc -l)
@@ -70,8 +70,8 @@ else
 	printf "Just as a Heads up. Please don't use this tester as a easy way to farm points or to try your own function.\n"
 	printf "Now can you please enter the path to your pipex folder.\n"${YELLOW}
 	read usr_path
-	make $usr_path > /dev/null 2>&1
-	make $usr_path clean > /dev/null 2>&1
+	make -C $usr_path > /dev/null 2>&1
+	make -C $usr_path clean > /dev/null 2>&1
 	TEST_PATH=$(ls $usr_path 2>&1)
 	TEST_MAKE=$(echo "$TEST_PATH" | grep pipex | wc -l)
 	TEST_PATH2=$(echo "$TEST_PATH" | grep "such file or directory" | wc -l)
@@ -115,14 +115,14 @@ echo "Do not rely only on these test, try your own too to see if you really unde
 if [ -f Makefile ]; then
 	corr_path=$(cat $USR_PATH)
 	make -C $corr_path > /dev/null 2>&1
-	make clean -C $usr_path > /dev/null 2>&1
+	make clean -C $corr_path > /dev/null 2>&1
 fi
 
 if [ -f "$corr_path/$FILE" ]; then
 	echo -n
 else
 	printf ${RED}"$corr_path/pipex: No such file or directory\n";
-	make fclean > /dev/null 2>&1
+	make fclean -C $corr_path > /dev/null 2>&1
 	exit 0
 fi
 

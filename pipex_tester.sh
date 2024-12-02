@@ -500,7 +500,7 @@ printf ${MAGENTA}"\n------------------------------------------------------------
 printf "\n\t\t\t\t\t  FUNCTION WRITES, ALLOCS AND CLOSE FDS\t\n";
 printf "\n------------------------------------------------------------------------------------------------------------------------\n\n";
 
-VALGRIND=$PWD/.valgrindrc
+VALGRIND=./.valgrindrc
 TOT=0
 COUNTG=0
 COUNTR=0
@@ -1335,7 +1335,7 @@ COUNT=1
 printf ${CYAN}"\n\nTesting pipex's result ${TESTNB}: errors encountered\n";
 ((TESTNB++))
 
-output=$($corr_path/pipex test_file.txt "cat" "cat" fpipex 2>&1)
+output=$($corr_path/pipex test_file.txt "cat" "" fpipex 2>&1)
 line=$(echo "$output" | grep "denied" | wc -l)
 < test_file.txt cat | > r1pipex
 output=$(< test_file.txt cat | "" > r2pipex 2>&1)

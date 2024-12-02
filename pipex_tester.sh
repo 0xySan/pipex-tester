@@ -1315,8 +1315,8 @@ fi
 ((TOT++))
 ((COUNT++))
 
-$corr_path/pipex test_file.txt "ls -l -a -r" "grep .c" fpipex
-< test_file.txt ls -l -a -r | grep .c > rpipex
+$corr_path/pipex test_file.txt "ls -l -a -r" "wc -l" fpipex
+< test_file.txt ls -l -a -r | wc -l > rpipex
 
 if cmp --silent -- "$PWD/fpipex" "$PWD/rpipex"; then
 	printf ${GREEN}""$COUNT":OK. "

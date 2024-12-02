@@ -186,8 +186,9 @@ printf ${CYAN}"\nTesting pipex error 1: missing command in the first pipe\n";
 
 output=$($corr_path/pipex 2>&1)
 exit_code=$?
+line_count_tot3=$(echo "$output" | grep "(core dumped)" | wc -l)
 
-if [ -n "$output" ] || [ $exit_code -ne 0 ]; then
+if [ -n "$output" ] || [ $exit_code -ne 0 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${GREEN}"OK. AN ERROR OCCURED\n";
 	((COUNTG++))
 else
@@ -205,11 +206,12 @@ output=$($corr_path/pipex mmmmmmmmmm "ls -l" "grep ." out 2>&1)
 
 line_count=$(echo "$output" | grep mmmmmmmmmm | grep "such file or directory" | wc -l)
 line_count2=$(echo "$output" | wc -l)
+line_count_tot3=$(echo "$output" | grep "(core dumped)" | wc -l)
 
-if [ "$line_count" -eq 1 ]; then
+if [ "$line_count" -eq 1 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${GREEN}"OK. SAME ERROR OCCURED\n";
 	((COUNTG++))
-elif [ "$line_count2" -eq 1 ]; then
+elif [ "$line_count2" -eq 1 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
@@ -229,11 +231,12 @@ output=$($corr_path/pipex test_file_nb_3 "ls -l" "grep ." out 2>&1)
 
 line_count=$(echo "$output" | grep test_file_nb_3 | grep "denied" | wc -l)
 line_count2=$(echo "$output" | wc -l)
+line_count_tot3=$(echo "$output" | grep "(core dumped)" | wc -l)
 
-if [ "$line_count" -eq 1 ]; then
+if [ "$line_count" -eq 1 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${GREEN}"OK. SAME ERROR OCCURED\n";
 	((COUNTG++))
-elif [ "$line_count2" -eq 1 ]; then
+elif [ "$line_count2" -eq 1 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
@@ -250,11 +253,12 @@ output=$($corr_path/pipex test_file.txt "ls -l" "grep ." test_file_nb_3 2>&1)
 
 line_count=$(echo "$output" | grep test_file_nb_3 | grep "denied" | wc -l)
 line_count2=$(echo "$output" | wc -l)
+line_count_tot3=$(echo "$output" | grep "(core dumped)" | wc -l)
 
-if [ "$line_count" -eq 1 ]; then
+if [ "$line_count" -eq 1 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${GREEN}"OK. SAME ERROR OCCURED\n";
 	((COUNTG++))
-elif [ "$line_count2" -eq 1 ]; then
+elif [ "$line_count2" -eq 1 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
@@ -273,11 +277,13 @@ line_count=$(echo "$output" | grep mmmmmmmmmm | grep "such file or directory" | 
 line_count2=$(echo "$output" | grep test_file_nb_3 | grep "denied" | wc -l)
 ((line_count_tot= line_count + line_count2))
 line_count_tot2=$(echo "$output" | wc -l)
+line_count_tot3=$(echo "$output" | grep "(core dumped)" | wc -l)
 
-if [ "$line_count_tot" -eq 2 ]; then
+printf "$line_count_tot3"
+if [ "$line_count_tot" -eq 2 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${GREEN}"OK. SAME ERROR OCCURED\n";
 	((COUNTG++))
-elif [ "$line_count_tot2" -gt 0 ]; then
+elif [ "$line_count_tot2" -gt 0 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
@@ -299,11 +305,12 @@ line_count=$(echo "$output" | grep test_file_nb_6 | grep "denied" | wc -l)
 line_count2=$(echo "$output" | grep test_file_nb_3 | grep "denied" | wc -l)
 ((line_count_tot= line_count + line_count2))
 line_count_tot2=$(echo "$output" | wc -l)
+line_count_tot3=$(echo "$output" | grep "(core dumped)" | wc -l)
 
-if [ "$line_count_tot" -eq 2 ]; then
+if [ "$line_count_tot" -eq 2 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${GREEN}"OK. SAME ERROR OCCURED\n";
 	((COUNTG++))
-elif [ "$line_count_tot2" -gt 0 ]; then
+elif [ "$line_count_tot2" -gt 0 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
@@ -320,7 +327,9 @@ output=$($corr_path/pipex test_file.txt "sefsef" "grep ." out 2>&1)
 
 line_count=$(echo "$output" | grep sefsef | grep "command not found" | wc -l)
 line_count2=$(echo "$output" | wc -l)
+line_count_tot3=$(echo "$output")
 
+printf "$output"
 if [ "$line_count" -eq 1 ]; then
     printf ${GREEN}"OK. SAME ERROR OCCURED\n";
 	((COUNTG++))
@@ -836,14 +845,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -eq 1 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}"OK.\n";
 		((COUNTG++))
 	else
-		printf ${RED}"FKO.\n"
+		printf ${RED}"MKO.\n"
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -861,14 +874,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -882,14 +899,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -903,14 +924,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -924,14 +949,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -945,14 +974,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -967,14 +1000,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -988,14 +1025,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -1009,14 +1050,17 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
-
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -1030,14 +1074,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -1051,14 +1099,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -1072,14 +1124,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -1093,14 +1149,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -1114,14 +1174,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -1135,14 +1199,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -1156,14 +1224,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -1177,14 +1249,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -1198,14 +1274,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -1219,14 +1299,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -1240,14 +1324,18 @@ if [ $((VALGRIND_OPT)) -eq 0 ]; then
 	error2=$(echo "$output" | grep "blocks are still reachable in loss record" | wc -l)
 	error3=$(echo "$output" | grep "blocks are definitely lost in loss record" | wc -l)
 	error4=$(echo "$output" | grep "unitialized value" | wc -l)
-	((tot_error=error1+error2+error3+error4))
+	error5=$(echo "$output" | grep "Invalid free" | wc -l)
+	error6=$(echo "$output" | grep "points to unaddressable byte" | wc -l)
+	error7=$(echo "$output" | grep "bytes inside a block of size" | wc -l)
+	error8=$(echo "$output" | grep "Block was alloc'd at" | wc -l)
+	((tot_error=error1+error2+error3+error4+error5+error6+error7+error8))
 
 
 	if [ "$no_error" -gt 0 ] && [ "$tot_error" -eq 0 ]; then
 		printf ${GREEN}""$COUNT":OK. ";
 		((COUNTG++))
 	else
-		printf ${RED}""$COUNT":FKO. "
+		printf ${RED}""$COUNT":MKO. "
 		((COUNTR++))
 	fi
 	((TOT++))
@@ -1263,7 +1351,7 @@ printf ${CYAN}"\n\nTesting pipex's result ${TESTNB}: enough arguments\n";
 
 COUNT=1
 
-$corr_path/pipex test_file.txt "cat" "cat" fpipex
+output=$($corr_path/pipex test_file.txt "cat" "cat" fpipex 2>&1)
 < test_file.txt cat | cat > rpipex
 
 if cmp --silent -- "$PWD/fpipex" "$PWD/rpipex"; then
@@ -1276,7 +1364,7 @@ fi
 ((TOT++))
 ((COUNT++))
 
-$corr_path/pipex test_file.txt "ls -l" "wc -l" fpipex
+output=$($corr_path/pipex test_file.txt "ls -l" "wc -l" fpipex 2>&1)
 < test_file.txt ls -l | wc -l > rpipex
 
 if cmp --silent -- "$PWD/fpipex" "$PWD/rpipex"; then
@@ -1289,7 +1377,7 @@ fi
 ((TOT++))
 ((COUNT++))
 
-$corr_path/pipex test_file.txt "cat" "wc -w" fpipex
+output=$($corr_path/pipex test_file.txt "cat" "wc -w" fpipex 2>&1)
 < test_file.txt cat | wc -w > rpipex
 
 if cmp --silent -- "$PWD/fpipex" "$PWD/rpipex"; then
@@ -1302,7 +1390,7 @@ fi
 ((TOT++))
 ((COUNT++))
 
-$corr_path/pipex test_file.txt "cat" "head -n 5" fpipex
+output=$($corr_path/pipex test_file.txt "cat" "head -n 5" fpipex 2>&1)
 < test_file.txt cat | head -n 5 > rpipex
 
 if cmp --silent -- "$PWD/fpipex" "$PWD/rpipex"; then
@@ -1315,7 +1403,7 @@ fi
 ((TOT++))
 ((COUNT++))
 
-$corr_path/pipex test_file.txt "ls -l -a -r" "wc -l" fpipex
+output=$($corr_path/pipex test_file.txt "ls -l -a -r" "wc -l" fpipex 2>&1)
 < test_file.txt ls -l -a -r | wc -l > rpipex
 
 if cmp --silent -- "$PWD/fpipex" "$PWD/rpipex"; then
@@ -1368,9 +1456,9 @@ fi
 ((TOT++))
 ((COUNT++))
 
-output=$($corr_path/pipex mmmmmmmmmmmmm "cat" "ls -l" fpipex 2>&1)
+output=$($corr_path/pipex mmmmmmmmmmmmm "cat" "wc -l" fpipex 2>&1)
 line=$(echo "$output" | wc -l)
-output=$(( cat < mmmm ) 2>/dev/null | ls -l > r1pipex)
+output=$(( cat < mmmm ) 2>/dev/null | wc -l > r1pipex)
 line2=$(echo "$output" | wc -l)d
 
 if cmp --silent -- "$PWD/fpipex" "$PWD/r1pipex"; then

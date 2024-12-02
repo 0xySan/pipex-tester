@@ -279,7 +279,6 @@ line_count2=$(echo "$output" | grep test_file_nb_3 | grep "denied" | wc -l)
 line_count_tot2=$(echo "$output" | wc -l)
 line_count_tot3=$(echo "$output" | grep "(core dumped)" | wc -l)
 
-printf "$line_count_tot3"
 if [ "$line_count_tot" -eq 2 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${GREEN}"OK. SAME ERROR OCCURED\n";
 	((COUNTG++))
@@ -329,7 +328,6 @@ line_count=$(echo "$output" | grep sefsef | grep "command not found" | wc -l)
 line_count2=$(echo "$output" | wc -l)
 line_count_tot3=$(echo "$output")
 
-printf "$output"
 if [ "$line_count" -eq 1 ]; then
     printf ${GREEN}"OK. SAME ERROR OCCURED\n";
 	((COUNTG++))

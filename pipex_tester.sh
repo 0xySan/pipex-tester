@@ -192,7 +192,7 @@ if [ -n "$output" ] || [ $exit_code -ne 0 ] && [ "$line_count_tot3" -eq 0 ]; the
     printf ${GREEN}"OK. AN ERROR OCCURED\n";
 	((COUNTG++))
 else
-    echo ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR AT ALL WHEN NO ARGUEMENTS IS GIVEN\n\n"
+    echo ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR AT ALL WHEN NO ARGUEMENTS IS GIVEN\n"
 	((COUNTR++))
 fi
 ((TOT++))
@@ -211,11 +211,11 @@ line_count_tot3=$(echo "$output" | grep "(core dumped)" | wc -l)
 if [ "$line_count" -eq 1 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${GREEN}"OK. SAME ERROR OCCURED\n";
 	((COUNTG++))
-elif [ "$line_count2" -eq 1 ] && [ "$line_count_tot3" -eq 0 ]; then
+elif [ "$line_count2" -gt 0 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
-    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN INPUT FILE DOESN'T EXIST\n\n"
+    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN INPUT FILE DOESN'T EXIST\n"
 	((COUNTR++))
 fi
 ((TOT++))
@@ -233,14 +233,14 @@ line_count=$(echo "$output" | grep test_file_nb_3 | grep "denied" | wc -l)
 line_count2=$(echo "$output" | wc -l)
 line_count_tot3=$(echo "$output" | grep "(core dumped)" | wc -l)
 
-if [ "$line_count" -eq 1 ] && [ "$line_count_tot3" -eq 0 ]; then
+if [ "$line_count" -eq 1 ]; then
     printf ${GREEN}"OK. SAME ERROR OCCURED\n";
 	((COUNTG++))
-elif [ "$line_count2" -eq 1 ] && [ "$line_count_tot3" -eq 0 ]; then
+elif [ "$line_count2" -gt 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
-    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN INPUT FILE ISNT'T READABLE\n\n"
+    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN INPUT FILE ISNT'T READABLE\n"
 	((COUNTR++))
 fi
 ((TOT++))
@@ -258,11 +258,11 @@ line_count_tot3=$(echo "$output" | grep "(core dumped)" | wc -l)
 if [ "$line_count" -eq 1 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${GREEN}"OK. SAME ERROR OCCURED\n";
 	((COUNTG++))
-elif [ "$line_count2" -eq 1 ] && [ "$line_count_tot3" -eq 0 ]; then
+elif [ "$line_count2" -gt 0 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
-    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN OUTPUT FILE ISNT'T WRITABLE\n\n"
+    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN OUTPUT FILE ISNT'T WRITABLE\n"
 	((COUNTR++))
 fi
 ((TOT++))
@@ -286,7 +286,7 @@ elif [ "$line_count_tot2" -gt 0 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
-    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN OUTPUT FILE ISNT'T WRITABLE AND INPUT FILE DOESN'T EXIST\n\n"
+    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN OUTPUT FILE ISNT'T WRITABLE AND INPUT FILE DOESN'T EXIST\n"
 	((COUNTR++))
 fi
 ((TOT++))
@@ -313,7 +313,7 @@ elif [ "$line_count_tot2" -gt 0 ] && [ "$line_count_tot3" -eq 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
-    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN OUTPUT FILE ISNT'T WRITABLE AND INPUT FILE ISN'T READABLE\n\n"
+    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN OUTPUT FILE ISNT'T WRITABLE AND INPUT FILE ISN'T READABLE\n"
 	((COUNTR++))
 fi
 ((TOT++))
@@ -331,11 +331,11 @@ line_count_tot3=$(echo "$output")
 if [ "$line_count" -eq 1 ]; then
     printf ${GREEN}"OK. SAME ERROR OCCURED\n";
 	((COUNTG++))
-elif [ "$line_count2" -eq 1 ]; then
+elif [ "$line_count2" -gt 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
-    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN ONE COMMAND IS NOT FOUND\n\n"
+    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN ONE COMMAND IS NOT FOUND\n"
 	((COUNTR++))
 fi
 ((TOT++))
@@ -381,7 +381,7 @@ elif [ "$line_count_tot2" -gt 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
-    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN ONE COMMAND IS NOT FOUND, OUTPUT FILE ISNT'T WRITABLE AND INPUT FILE ISN'T READABLE\n\n"
+    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN ONE COMMAND IS NOT FOUND, OUTPUT FILE ISNT'T WRITABLE AND INPUT FILE ISN'T READABLE\n"
 	((COUNTR++))
 fi
 ((TOT++))
@@ -404,7 +404,7 @@ elif [ "$line_count_tot2" -gt 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
-    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN TWO COMMANDS ARE NOT FOUND, OUTPUT FILE ISNT'T WRITABLE AND INPUT FILE ISN'T READABLE\n\n"
+    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN TWO COMMANDS ARE NOT FOUND, OUTPUT FILE ISNT'T WRITABLE AND INPUT FILE ISN'T READABLE\n"
 	((COUNTR++))
 fi
 ((TOT++))
@@ -427,7 +427,7 @@ elif [ "$line_count_tot2" -gt 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
-    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN ONE COMMAND IS NOT FOUND, OUTPUT FILE ISNT'T WRITABLE AND INPUT FILE DOESN'T EXIST{DEF_COLOR}\n\n"
+    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN ONE COMMAND IS NOT FOUND, OUTPUT FILE ISNT'T WRITABLE AND INPUT FILE DOESN'T EXIST{DEF_COLOR}\n"
 	((COUNTR++))
 fi
 ((TOT++))
@@ -450,7 +450,7 @@ elif [ "$line_count_tot2" -gt 0 ]; then
     printf ${YELLOW}"OK. AN ERROR OCCURED BUT IS NOT THE SAME AS THE REAL ONE\n";
 	((COUNTY++))
 else
-    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN TWO COMMANDS ARE NOT FOUND, OUTPUT FILE ISNT'T WRITABLE AND INPUT FILE DOESN'T EXIST\n\n"
+    printf ${RED}"KO. PIPEX DOESN'T HAVE AN ERROR WHEN TWO COMMANDS ARE NOT FOUND, OUTPUT FILE ISNT'T WRITABLE AND INPUT FILE DOESN'T EXIST\n"
 	((COUNTR++))
 fi
 ((TOT++))

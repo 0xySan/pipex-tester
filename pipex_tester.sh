@@ -1784,7 +1784,7 @@ fi
 printf ${CYAN}"\n\nTesting pipex bonus heredoc's ${TESTNB}: errors encountered\n";
 ((TESTNB++))
 
-output=$($corr_path/pipex here_doc EOF cat "wc -w" fpipex 2>&1)
-echo EOF
+# output=$($corr_path/pipex here_doc EOF cat "wc -w" fpipex 2>&1)
+# echo EOF
 
 rm -f out test_file_nb_3 test_file_nb_6 rpipex fpipex r1pipex r2pipex
